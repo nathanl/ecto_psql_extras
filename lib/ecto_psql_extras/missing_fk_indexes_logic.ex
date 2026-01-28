@@ -6,6 +6,9 @@ defmodule EctoPSQLExtras.MissingFkIndexesLogic do
   require Logger
 
   def run(repo, table_name \\ nil) do
+    # Normalize repo to avoid RPC overhead when querying local node
+    repo = normalize_repo(repo)
+
     all_indexes = EctoPSQLExtras.indexes(repo, format: :raw).rows
 
     all_tables =
@@ -54,4 +57,9 @@ defmodule EctoPSQLExtras.MissingFkIndexesLogic do
       columns: ["table", "column_name"]
     }
   end
+
+  # Unwrap {repo, node} tuples when querying the local node to avoid
+  # thousands of unnecessary RPC calls when looping through tables
+  defp normalize_repo({repo, node}) when node == node(), do: repo
+  defp normalize_repo(repo), do: repo
 end
